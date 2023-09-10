@@ -16,12 +16,21 @@ handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 class ServicesAlarmChecker:
-    def __init__(self, region_name):
-        self.obj_ec2 = EC2(self.alarm_json_metrics,self.validation,region_name=region_name)
-        self.obj_rds = RDS(self.alarm_json_metrics,self.validation,region_name=region_name)
-        self.obj_lambda = Lambda(self.alarm_json_metrics,self.validation,region_name=region_name)
-        self.obj_alb = ALB(self.alarm_json_metrics,self.validation,region_name=region_name)
-        self.region_name=region_name
+    def __init__(self):
+        self.region_name = self.read_region_name_from_yaml()
+        self.obj_ec2 = EC2(self.alarm_json_metrics, self.validation, region_name=self.region_name)
+        self.obj_rds = RDS(self.alarm_json_metrics, self.validation, region_name=self.region_name)
+        self.obj_lambda = Lambda(self.alarm_json_metrics, self.validation, region_name=self.region_name)
+        self.obj_alb = ALB(self.alarm_json_metrics, self.validation, region_name=self.region_name)
+
+    def read_region_name_from_yaml(self):
+        try:
+            with open('input.yaml', 'r') as f:
+                input_data = yaml.safe_load(f)
+                return input_data.get('region_name')
+        except Exception as e:
+            logger.error("Error occurred while reading region name from YAML: %s", str(e))
+            return None
 
     def alarm_json_metrics(self, alarm_configuration, alarms_json, metric, resource_name):
         alarms_json[metric].append({
@@ -216,6 +225,12 @@ class ServicesAlarmChecker:
                 file_path = 'input.yaml'
                 input_data = self.read_yaml_input(file_path)
                 
+                region_name = input_data.get('region_name')
+                
+                if not region_name:
+                    logger.error("Region name not found in the YAML configuration.")
+                    return
+                
                 prefix = input_data.get('prefix')
 
                 service_dict = self.separate_services(input_data)
@@ -373,6 +388,5 @@ class ServicesAlarmChecker:
             logger.error("Error occurred in the main function: %s", str(e))
 
 
-region_name = input("Enter the region: ")   
-alarm_checker = ServicesAlarmChecker(region_name)
+alarm_checker = ServicesAlarmChecker()
 alarm_checker.main()
