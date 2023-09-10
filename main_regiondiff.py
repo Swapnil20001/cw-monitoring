@@ -17,22 +17,13 @@ logger.addHandler(handler)
 
 class ServicesAlarmChecker:
     def __init__(self):
-        self.region_name = self.read_region_name_from_yaml()
+        self.region_name = self.read_yaml_input().get('region_name')
         self.obj_ec2 = EC2(self.alarm_json_metrics, self.validation, region_name=self.region_name)
         self.obj_rds = RDS(self.alarm_json_metrics, self.validation, region_name=self.region_name)
         self.obj_lambda = Lambda(self.alarm_json_metrics, self.validation, region_name=self.region_name)
         self.obj_alb = ALB(self.alarm_json_metrics, self.validation, region_name=self.region_name)
 
-    def read_region_name_from_yaml(self):
-        try:
-            with open('input.yaml', 'r') as f:
-                input_data = yaml.safe_load(f)
-                return input_data.get('region_name')
-        except Exception as e:
-            logger.error("Error occurred while reading region name from YAML: %s", str(e))
-            return None
-    
-    def read_yaml_input(self, file_path):
+    def read_yaml_input(self, file_path="input.yaml"):
         try:
             with open(file_path, 'r') as f:
                 input_data = yaml.safe_load(f)
@@ -222,8 +213,7 @@ class ServicesAlarmChecker:
                 logger.info("3. Exit")
                 choice = input("Enter your choice: ")
 
-                file_path = 'input.yaml'
-                input_data = self.read_yaml_input(file_path)
+                input_data = self.read_yaml_input()
                 
                 prefix = input_data.get('prefix')
 
