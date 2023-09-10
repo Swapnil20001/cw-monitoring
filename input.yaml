@@ -1,5 +1,5 @@
 region_name: ap-south-1
-prefix: Devops
+prefix: custom
 
 Tags:
   ec2_tag:
