@@ -165,7 +165,7 @@ class ServicesAlarmChecker:
             for instance_id, metrics in data.items():
                 for metric, alarms in metrics.items():
                     for alarm in alarms:
-                        col = 0  # Reset column index for each new row
+                        col = 0  
                         for value in [alarm['ResourceName'],instance_id, metric, alarm['alarmname'], alarm['Validation'], alarm['Reason'],
                                     alarm['Threshold'], alarm['AlarmThreshold'], alarm['DatapointsToAlarm'], alarm['AlarmDatapointsToAlarm'],
                                     alarm['EvaluationPeriods'], alarm['AlarmEvaluationPeriods'], alarm['Period'], alarm['AlarmPeriod'],
@@ -191,7 +191,7 @@ class ServicesAlarmChecker:
                 for instance_id, metrics in instances.items():
                     for metric, alarms in metrics.items():
                         for alarm in alarms:
-                            col = 0  # Reset column index for each new row
+                            col = 0  
                             for value in [resource_type,alarm['ResourceName'],instance_id, metric, alarm['alarmname'], alarm['Validation'], alarm['Reason'],
                                         alarm['Threshold'], alarm['AlarmThreshold'], alarm['DatapointsToAlarm'], alarm['AlarmDatapointsToAlarm'],
                                         alarm['EvaluationPeriods'], alarm['AlarmEvaluationPeriods'], alarm['Period'], alarm['AlarmPeriod'],
@@ -216,6 +216,8 @@ class ServicesAlarmChecker:
 
                 file_path = 'input.yaml'
                 input_data = self.read_yaml_input(file_path)
+                
+                prefix = input_data.get('prefix')
 
                 service_dict = self.separate_services(input_data)
 
@@ -289,11 +291,6 @@ class ServicesAlarmChecker:
                     if alb_report_data:
                         combined_report_data['ALB'] = alb_report_data
 
-                    # print(combined_report_data)
-                    
-                    # service_name = 'Resources'
-                    # service_data = input_data[service_name]
-
                     service_name = 'Resources'
                     service_data = input_data.get(service_name, {})
 
@@ -332,8 +329,6 @@ class ServicesAlarmChecker:
                     self.obj_lambda.create_lambda_alarms_from_json(lambda_json, sns_action,prefix)
                     self.obj_alb.create_alb_alarms_from_json(alb_json,sns_action,prefix)
 
-                    # service_name = 'Resources'
-                    # service_data = input_data[service_name]
 
                     service_name = 'Resources'
                     service_data = input_data.get(service_name, {})
@@ -380,6 +375,5 @@ class ServicesAlarmChecker:
 
 
 region_name = input("Enter the region: ")   
-prefix = input("Enter the prefix name for alarm: ") 
 alarm_checker = ServicesAlarmChecker(region_name)
 alarm_checker.main()

@@ -1,3 +1,6 @@
+region_name: us-east-1
+prefix: Devops
+
 Tags:
   ec2_tag:
     - Type: ec2
