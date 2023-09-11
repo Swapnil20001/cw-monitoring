@@ -27,7 +27,6 @@ class ALB:
 
                     tag_dict = {tag['Key']: tag['Value'] for tag in alb_tags}
 
-                    # Check if the tags of the ALB match any of the dictionaries in tags_list
                     for tags_json in alb_tag_input:
                         if all(tag_dict.get(key) == value for key, value in tags_json.items()):
                             arn_list.append(alb)
@@ -51,7 +50,6 @@ class ALB:
                 alarms_json[metric] = []
 
                 for alarm_configuration in validation_alarm_configurations:
-                    # Separate alarms based on the specified thresholds (70 and 80)
                     threshold_alarms = []
 
                     namespace = 'AWS/ApplicationELB'
@@ -129,14 +127,13 @@ class ALB:
                 Statistic=alarm_configuration['Statistic'],
                 Threshold=alarm_configuration['Threshold'],
                 ActionsEnabled=True,
-                AlarmActions=sns_action,  # Replace with your SNS topic ARN
+                AlarmActions=sns_action, 
                 AlarmDescription=alarm_configuration['AlarmDescription'],
                 Dimensions=[{'Name': 'LoadBalancer', 'Value': resource}],
                 DatapointsToAlarm=alarm_configuration['DatapointsToAlarm'],
                 TreatMissingData=alarm_configuration['TreatMissingData']
             )
             logger.info("Alarm created successfully for alb: %s", alarm_name)
-            # logger.info(" ")
         except Exception as e:
             logger.error("Error occurred while creating an alarm for alb: %s", resource)
             logger.error("Error details: %s", str(e))

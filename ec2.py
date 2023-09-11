@@ -51,7 +51,6 @@ class EC2:
                 alarms_json[metric] = []
 
                 for alarm_configuration in validation_alarm_configurations:
-                    # Separate alarms based on the specified thresholds (70 and 80)
                     threshold_alarms = []
 
                     if metric in ['Memory', 'Disk']:
@@ -109,7 +108,6 @@ class EC2:
                         alarms_json[metric].extend(threshold_alarms)
 
                     if not response['MetricAlarms']:
-                        # self.alarm_json_metrics(alarm_configuration, alarms_json, metric)
                         self.alarm_json_metrics(alarm_configuration, alarms_json, metric,resource_name)
 
             return alarms_json
@@ -158,15 +156,13 @@ class EC2:
                 Statistic=alarm_configuration['Statistic'],
                 Threshold=alarm_configuration['Threshold'],
                 ActionsEnabled=True,
-                AlarmActions=sns_action,  # Replace with your SNS topic ARN
+                AlarmActions=sns_action, 
                 AlarmDescription=alarm_configuration['AlarmDescription'],
                 Dimensions=[{'Name': 'InstanceId', 'Value': resource}],
                 DatapointsToAlarm=alarm_configuration['DatapointsToAlarm'],
                 TreatMissingData=alarm_configuration['TreatMissingData']
             )
             logger.info("Alarm created successfully for instance: %s", alarm_name)
-            # logger.info(" ")
-
         except Exception as e:
             logger.error("Error occurred while creating an alarm for instance: %s", resource)
             logger.error("Error details: %s", str(e))
