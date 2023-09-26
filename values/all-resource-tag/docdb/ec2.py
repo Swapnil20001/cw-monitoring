@@ -19,14 +19,17 @@ class EC2:
 
     def get_instance_ids(self, ec2_tags):
         try:
-            print(ec2_tags)
-            filters = [
-                {'Name': f'tag:{key}', 'Values': [value]}
-                for tag in ec2_tags
-                for key, value in tag.items()
-            ]
-            
-            reservations = self.ec2_client.describe_instances(Filters=filters).get('Reservations', [])
+            filters = []
+            if (len(ec2_tags)):
+                for key, values in ec2_tags.items():
+                    values_list = values if isinstance(values, list) else [values]
+                    tag_filters = {'Name': f'tag:{key}', 'Values': values_list}
+                    filters.append(tag_filters)
+                
+                reservations = self.ec2_client.describe_instances(Filters=filters).get('Reservations', [])
+            else:
+                reservations = self.ec2_client.describe_instances().get('Reservations', [])
+
             instances = sum([[i for i in r['Instances']] for r in reservations], [])
 
             instance_data = []
@@ -140,9 +143,8 @@ class EC2:
         try:
             resource_name = alarm_configuration['ResourceName']
             current_timestamp_ms = int(time.time() * 1000)
-            alarm_name = f"{prefix}/AWS-EC2/{resource}({resource_name})/{metric_name}-Critical/{datetime.now():%Y}/{current_timestamp_ms}"     
+            alarm_name = f"{prefix}|AWS/EC2|{resource}({resource_name})|{metric_name}|{datetime.now():%Y}|{current_timestamp_ms}"     
 
-            
             if metric_name in ['Memory', 'Disk']:
                 namespace = 'CWAgent'
             else:

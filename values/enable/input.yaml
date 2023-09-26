@@ -1,23 +1,39 @@
 region_name: ap-south-1
 prefix: custom
 
-Tags:
-  ec2_tag:
-    - Type: ec2
-      # Project: aws
-      Environment: Prod
-      # Name: test
+Services:
+  EC2:
+    enabled: true
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - Prod
+        # - Dev
 
-  rds_tag:
-    - Project: aws
-      # Environment: non-prod
+  RDS:
+    enabled: true
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - Prod
+        # - Dev
 
-  alb_tag:
-    - Project: aws
-      Environment: NProd
-      # name: test
+  ALB:
+    enabled: true
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - NProd
+        # - Dev
 
-sns_action: ['arn:aws:sns:ap-south-1:342646517446:demo']
+  LAMBDA:
+    enabled: false
+
+
+sns_action: ['arn:aws:sns:ap-south-1:342646517446:demo',arn:aws:sns:ap-south-1:342646517446:test]
 
 service:
   EC2:
@@ -144,7 +160,7 @@ Resources:
         TreatMissingData: "missing"
         AlarmDescription: "Average Errors is too high."
   ALB:
-    app/test-alb/044201faecb18ff9:
+    app/test-alb/a3ca4e84aef6f020:
       RequestCount:
       - ResourceName: test-alb
         MetricName: RequestCount

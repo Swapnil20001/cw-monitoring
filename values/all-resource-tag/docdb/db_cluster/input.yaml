@@ -1,0 +1,204 @@
+region_name: ap-south-1
+prefix: MSP
+
+Services:
+  EC2:
+    enabled: true
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - Prod
+        # - Dev
+
+  RDS:
+    enabled: false
+    # Tag:
+    #   Project:
+    #     - aws
+    #   Environment:
+    #     # - Prod
+    #     - Dev
+    
+
+  ALB:
+    enabled: true
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - NProd
+        # - Dev
+
+  LAMBDA:
+    enabled: true
+
+sns_action: ['arn:aws:sns:ap-south-1:999999999999:demo']
+
+service:
+  EC2:
+    CPU:
+      - MetricName: "CPUUtilization"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 10
+        Period: 60
+        Threshold: 75.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average CPU utilization is too high."
+    Memory:
+      - MetricName: "mem_used_percent"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 75.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average memory utilization is too high"
+    Disk:
+      - MetricName: "disk_used_percent"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 75.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average Disk utilization is too high."
+    System:
+      - MetricName: "StatusCheckFailed"
+        DatapointsToAlarm: 1
+        EvaluationPeriods: 1
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "System Health check failed more than 2 times."
+
+  RDS:
+    CPU:
+      - MetricName: "CPUUtilization"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 75.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average CPU utilization is too high."
+    Memory:
+      - MetricName: "FreeableMemory"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Average"
+        ComparisonOperator: "LessThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "FreeableMemory is too low."
+    Connections:
+      - MetricName: "DatabaseConnections"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Average"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average DatabaseConnections is too high."
+  Lambda:
+    Errors:
+      - MetricName: "Errors"
+        DatapointsToAlarm: 1
+        EvaluationPeriods: 1
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Sum"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average Errors is too high."
+  ALB:
+    RequestCount:
+      - MetricName: "RequestCount"
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Sum"
+        ComparisonOperator: "GreaterThanThreshold"
+        TreatMissingData: "missing"
+        AlarmDescription: "Average RequestCount is too high"
+
+# Resources:
+#   RDS_Cluster:
+#     aurora-cluster:
+#       CPU:
+#       - ResourceName: aurora-cluster
+#         Replica: READER
+#         MetricName: "CPUUtilization"
+#         DatapointsToAlarm: 2
+#         EvaluationPeriods: 2
+#         Period: 300
+#         Threshold: 75.0
+#         Statistic: "Average"
+#         ComparisonOperator: "GreaterThanThreshold"
+#         TreatMissingData: "missing"
+#         AlarmDescription: "Average CPU utilization is too high"
+#   RDS:
+#     docdb-2023-09-19-06-58-21:
+#       CPU:
+#       - ResourceName: docdb-2023-09-19-06-58-21
+#         Engine: "docdb"
+#         MetricName: "CPUUtilization"
+#         DatapointsToAlarm: 2
+#         EvaluationPeriods: 2
+#         Period: 300
+#         Threshold: 75.0
+#         Statistic: "Average"
+#         ComparisonOperator: "GreaterThanThreshold"
+#         TreatMissingData: "missing"
+#         AlarmDescription: "Average CPU utilization is too high"
+#   EC2:
+#     i-00ce7534221229f12:
+#       CPU:
+#       - ResourceName: test
+#         MetricName: "CPUUtilization"
+#         DatapointsToAlarm: 2
+#         EvaluationPeriods: 10
+#         Period: 60
+#         Threshold: 75.0
+#         Statistic: "Average"
+#         ComparisonOperator: "GreaterThanThreshold"
+#         TreatMissingData: "missing"
+#         AlarmDescription: "Average CPU utilization is too high."
+#   Lambda:
+#     demo:
+#       Errors:
+#       - ResourceName: demo
+#         MetricName: "Errors"
+#         DatapointsToAlarm: 1
+#         EvaluationPeriods: 1
+#         Period: 60
+#         Threshold: 0.0
+#         Statistic: "Sum"
+#         ComparisonOperator: "GreaterThanThreshold"
+#         TreatMissingData: "missing"
+#         AlarmDescription: "Average Errors is too high."
+#   ALB:
+#     app/test-alb/a3ca4e84aef6f020:
+#       RequestCount:
+#       - ResourceName: test-alb
+#         MetricName: RequestCount
+#         DatapointsToAlarm: 2
+#         EvaluationPeriods: 5
+#         Period: 60
+#         Threshold: 0.0
+#         Statistic: "Sum"
+#         ComparisonOperator: "GreaterThanThreshold"
+#         TreatMissingData: "missing"
+#         AlarmDescription: "Average CPU utilization is too high"
+
+

@@ -4,17 +4,16 @@ prefix: custom
 Tags:
   ec2_tag:
     - Type: ec2
-      # Project: aws
       Environment: Prod
-      # Name: test
+      Name: test
 
   rds_tag:
-    - Project: aws
-      # Environment: non-prod
+    - Module: RDS
+      Environment: non-prod
 
   alb_tag:
-    - Project: aws
-      Environment: NProd
+    - Type: ALB
+      Environment: Prod
       # name: test
 
 sns_action: ['arn:aws:sns:ap-south-1:342646517446:demo']

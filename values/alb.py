@@ -1,50 +1,52 @@
 import boto3
 import logging
 import time
+import yaml
 from datetime import datetime
-
-
 
 logger = logging.getLogger()
 
-class EC2:
-    def __init__(self,json_alarm,validation,region_name):
+class ALB:
+    def __init__(self,json_alarm,validation, region_name):
         self.region_name = region_name
         self.cloudwatch_client = boto3.client('cloudwatch', region_name=region_name)
-        self.ec2_client = boto3.client('ec2', region_name=self.region_name)
-        self.paginator = self.ec2_client.get_paginator('describe_instances')
+        
+        self.elb_client = boto3.client('elbv2',region_name=region_name)
         self.alarm_json_metrics=json_alarm
         self.validation=validation
 
-
-    def get_instance_ids(self, ec2_tags):
+    def get_albs(self, alb_tag_input):
         try:
-            print(ec2_tags)
-            filters = [
-                {'Name': f'tag:{key}', 'Values': [value]}
-                for tag in ec2_tags
-                for key, value in tag.items()
-            ]
-            
-            reservations = self.ec2_client.describe_instances(Filters=filters).get('Reservations', [])
-            instances = sum([[i for i in r['Instances']] for r in reservations], [])
+            response = self.elb_client.describe_load_balancers()
+            load_balancer_arns = [lb['LoadBalancerArn'] for lb in response['LoadBalancers']]
+            arn_list = []
+            final_alb_list = []
 
-            instance_data = []
-            for instance in instances:
-                instance_id = instance['InstanceId']
-                instance_tags = instance.get('Tags', [])
-                instance_name = next((tag['Value'] for tag in instance_tags if tag['Key'] == 'Name'), None)
-                if instance_name:
-                    instance_data.append({'ResourceID': instance_id, 'ResourceName': instance_name})
+            if isinstance(alb_tag_input, str):
+                alb_tag_input = yaml.safe_load(alb_tag_input)
 
-            return instance_data
-        
+            for alb in load_balancer_arns:
+                alb_lb = alb.split('/')[1]
+                if alb_lb == 'app':
+                    alb_tags = self.elb_client.describe_tags(ResourceArns=[alb])['TagDescriptions'][0]['Tags']
+
+                    tag_dict = {tag['Key']: tag['Value'] for tag in alb_tags}
+
+                    if all(tag_dict.get(key) in values for key, values in alb_tag_input.items()):
+                        arn_list.append(alb)
+
+            for alb_arn in arn_list:
+                resource_arn = alb_arn[alb_arn.index("/") + 1:]
+                resource_name = alb_arn.split('/')[-2]
+                alb_info = {'ResourceID': resource_arn, 'ResourceName': resource_name}
+                final_alb_list.append(alb_info)
+
+            return final_alb_list
         except Exception as e:
-            logger.error("Error occurred while getting EC2 instance IDs: %s", str(e))
-            return []
-        
+            logger.error("Error occurred while separating services: %s", str(e))
+            return {}
 
-    def check_ec2_alarms(self, instance_id,resource_name, alarms):
+    def check_alb_alarms(self, alb,resource_name, alarms):
         try:
             alarms_json = {}
 
@@ -54,14 +56,10 @@ class EC2:
                 for alarm_configuration in validation_alarm_configurations:
                     threshold_alarms = []
 
-                    if metric in ['Memory', 'Disk']:
-                        namespace = 'CWAgent'
-                    else:
-                        namespace = 'AWS/EC2'
-
+                    namespace = 'AWS/ApplicationELB'
                     metric_name = alarm_configuration['MetricName']
                     response = self.cloudwatch_client.describe_alarms_for_metric(
-                        Dimensions=[{'Name': 'InstanceId', 'Value': instance_id}],
+                        Dimensions=[{'Name': 'LoadBalancer', 'Value': alb}],
                         MetricName=metric_name,
                         Namespace=namespace
                     )
@@ -89,11 +87,11 @@ class EC2:
                             if alarm['Period'] != alarm_configuration['Period']:
                                 mismatch_reasons.append('Period')
                             if alarm['EvaluationPeriods'] != alarm_configuration['EvaluationPeriods']:
-                                mismatch_reasons.append('Evaluation periods')
+                                mismatch_reasons.append('Evaluation Periods')
                             if alarm['Statistic'] != alarm_configuration['Statistic']:
                                 mismatch_reasons.append('Statistic')
                             if alarm['ComparisonOperator'] != alarm_configuration['ComparisonOperator']:
-                                mismatch_reasons.append('Comparison operator')
+                                mismatch_reasons.append('Comparison Operator')
                             if alarm['TreatMissingData'] != alarm_configuration['TreatMissingData']:
                                 mismatch_reasons.append('Treat Missing Data')
 
@@ -109,44 +107,20 @@ class EC2:
                         alarms_json[metric].extend(threshold_alarms)
 
                     if not response['MetricAlarms']:
-                        self.alarm_json_metrics(alarm_configuration, alarms_json, metric,resource_name)
+                        self.alarm_json_metrics(alarm_configuration, alarms_json, metric, resource_name)
 
             return alarms_json
         except Exception as e:
-            logger.error("Error occurred while checking EC2 alarms: %s", str(e))
+            logger.error("Error occurred while checking Lambda alarms: %s", str(e))
             return {}
-        
-    def create_ec2_alarms_from_json(self,json_data, sns_action,prefix):
-        try:
-            any_alarm_created = False
-            for resource, alarms in json_data.items():
-                for metric_type, alarm_list in alarms.items():
-                    for alarm in alarm_list:
-                        validation = alarm.get('Validation')
-                        if validation and validation == 'fail':
-                            self.create_ec2_alarm(resource, metric_type, alarm, sns_action,prefix)
-                            any_alarm_created = True
- 
-            logger.info(" ")
-            if not any_alarm_created:
-                logger.info(f"All test cases passed for EC2. No alarms to create.")
-                logger.info("")
-                logger.info("*********************************************")
-                logger.info("")
-        except Exception as e:
-            logger.error("Error occurred while creating alarms:", str(e))
-        
-    def create_ec2_alarm(self, resource, metric_name, alarm_configuration, sns_action,prefix):
+
+    def create_alb_alarm(self, resource, metric_name, alarm_configuration,sns_action,prefix):
         try:
             resource_name = alarm_configuration['ResourceName']
             current_timestamp_ms = int(time.time() * 1000)
-            alarm_name = f"{prefix}/AWS-EC2/{resource}({resource_name})/{metric_name}-Critical/{datetime.now():%Y}/{current_timestamp_ms}"     
-
+            alarm_name = f"{prefix}/AWS-ALB/{resource}({resource_name})/{metric_name}-Critical/{datetime.now():%Y}/{current_timestamp_ms}"     
             
-            if metric_name in ['Memory', 'Disk']:
-                namespace = 'CWAgent'
-            else:
-                namespace = 'AWS/EC2'
+            namespace = "AWS/ApplicationELB"
             response = self.cloudwatch_client.put_metric_alarm(
                 AlarmName=alarm_name,
                 ComparisonOperator=alarm_configuration['ComparisonOperator'],
@@ -159,11 +133,31 @@ class EC2:
                 ActionsEnabled=True,
                 AlarmActions=sns_action, 
                 AlarmDescription=alarm_configuration['AlarmDescription'],
-                Dimensions=[{'Name': 'InstanceId', 'Value': resource}],
+                Dimensions=[{'Name': 'LoadBalancer', 'Value': resource}],
                 DatapointsToAlarm=alarm_configuration['DatapointsToAlarm'],
                 TreatMissingData=alarm_configuration['TreatMissingData']
             )
-            logger.info("Alarm created successfully for instance: %s", alarm_name)
+            logger.info("Alarm created successfully for alb: %s", alarm_name)
         except Exception as e:
-            logger.error("Error occurred while creating an alarm for instance: %s", resource)
+            logger.error("Error occurred while creating an alarm for alb: %s", resource)
             logger.error("Error details: %s", str(e))
+
+
+    def create_alb_alarms_from_json(self,json_data,sns_action,prefix):
+        try:
+            any_alarm_created = False
+            for resource, alarms in json_data.items():
+                for metric_type, alarm_list in alarms.items():
+                    for alarm in alarm_list:
+                        validation = alarm.get('Validation')
+                        if validation and validation == 'fail':
+                            self.create_alb_alarm(resource, metric_type, alarm, sns_action,prefix)
+                            any_alarm_created = True
+            logger.info(" ")
+            if not any_alarm_created:
+                logger.info(f"All test cases passed for alb. No alarms to create.")
+                logger.info("")
+                logger.info("*********************************************")
+                logger.info("")
+        except Exception as e:
+            logger.error("Error occurred while creating alarms:", str(e))

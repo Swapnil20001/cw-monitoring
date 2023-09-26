@@ -1,31 +1,46 @@
 region_name: ap-south-1
-prefix: custom
+prefix: MSP
 
-Tags:
-  ec2_tag:
-    - Type: ec2
-      # Project: aws
-      Environment: Prod
-      # Name: test
+Services:
+  EC2:
+    enabled: false
+    # Tag:
+    #   Project:
+    #     - aws
+    #   Environment:
+    #     - Prod
+    #     # - Dev
 
-  rds_tag:
-    - Project: aws
-      # Environment: non-prod
+  RDS:
+    enabled: true
+    # Tag:
+    #   Project:
+    #     - aws
+    #   Environment:
+    #     - Prod
+    #     # - Dev
 
-  alb_tag:
-    - Project: aws
-      Environment: NProd
-      # name: test
+  ALB:
+    enabled: false
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - NProd
+        # - Dev
 
-sns_action: ['arn:aws:sns:ap-south-1:342646517446:demo']
+  LAMBDA:
+    enabled: false
+
+sns_action: ['arn:aws:sns:ap-south-1:999999999999:demo']
 
 service:
   EC2:
     CPU:
       - MetricName: "CPUUtilization"
         DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
+        EvaluationPeriods: 10
+        Period: 60
         Threshold: 75.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
@@ -34,8 +49,8 @@ service:
     Memory:
       - MetricName: "mem_used_percent"
         DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
+        EvaluationPeriods: 5
+        Period: 60
         Threshold: 75.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
@@ -43,9 +58,9 @@ service:
         AlarmDescription: "Average memory utilization is too high"
     Disk:
       - MetricName: "disk_used_percent"
-        DatapointsToAlarm: 1
-        EvaluationPeriods: 1
-        Period: 300
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
         Threshold: 75.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
@@ -55,7 +70,7 @@ service:
       - MetricName: "StatusCheckFailed"
         DatapointsToAlarm: 1
         EvaluationPeriods: 1
-        Period: 300
+        Period: 60
         Threshold: 0.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
@@ -66,9 +81,9 @@ service:
     CPU:
       - MetricName: "CPUUtilization"
         DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
-        Threshold: 70.0
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 75.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
         TreatMissingData: "missing"
@@ -76,19 +91,19 @@ service:
     Memory:
       - MetricName: "FreeableMemory"
         DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
-        Threshold: 500
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 0.0
         Statistic: "Average"
         ComparisonOperator: "LessThanThreshold"
         TreatMissingData: "missing"
         AlarmDescription: "Average CPU utilization is too high."
     Connections:
       - MetricName: "DatabaseConnections"
-        DatapointsToAlarm: 1
-        EvaluationPeriods: 1
-        Period: 300
-        Threshold: 5.0
+        DatapointsToAlarm: 2
+        EvaluationPeriods: 5
+        Period: 60
+        Threshold: 0.0
         Statistic: "Average"
         ComparisonOperator: "GreaterThanThreshold"
         TreatMissingData: "missing"
@@ -96,11 +111,11 @@ service:
   Lambda:
     Errors:
       - MetricName: "Errors"
-        DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
-        Threshold: 4
-        Statistic: "Average"
+        DatapointsToAlarm: 1
+        EvaluationPeriods: 1
+        Period: 60
+        Threshold: 0.0
+        Statistic: "Sum"
         ComparisonOperator: "GreaterThanThreshold"
         TreatMissingData: "missing"
         AlarmDescription: "Average Errors is too high."
@@ -108,52 +123,10 @@ service:
     RequestCount:
       - MetricName: "RequestCount"
         DatapointsToAlarm: 2
-        EvaluationPeriods: 2
+        EvaluationPeriods: 5
         Period: 60
-        Threshold: 15
+        Threshold: 0.0
         Statistic: "Sum"
         ComparisonOperator: "GreaterThanThreshold"
         TreatMissingData: "missing"
         AlarmDescription: "Average CPU utilization is too high"
-
-Resources:
-  EC2:
-    i-00ce7534221229f12:
-      CPU:
-      - ResourceName: test
-        MetricName: "CPUUtilization"
-        DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
-        Threshold: 75.0
-        Statistic: "Average"
-        ComparisonOperator: "GreaterThanThreshold"
-        TreatMissingData: "missing"
-        AlarmDescription: "Average CPU utilization is too high"
-  Lambda:
-    demo:
-      Errors:
-      - ResourceName: demo
-        MetricName: "Errors"
-        DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 300
-        Threshold: 4
-        Statistic: "Average"
-        ComparisonOperator: "GreaterThanThreshold"
-        TreatMissingData: "missing"
-        AlarmDescription: "Average Errors is too high."
-  ALB:
-    app/test-alb/044201faecb18ff9:
-      RequestCount:
-      - ResourceName: test-alb
-        MetricName: RequestCount
-        DatapointsToAlarm: 2
-        EvaluationPeriods: 2
-        Period: 60
-        Threshold: 15
-        Statistic: Sum
-        ComparisonOperator: GreaterThanThreshold
-        TreatMissingData: missing
-        AlarmDescription: Average CPU utilization is too high
-

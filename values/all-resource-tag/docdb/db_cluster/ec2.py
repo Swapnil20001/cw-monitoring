@@ -3,8 +3,6 @@ import logging
 import time
 from datetime import datetime
 
-
-
 logger = logging.getLogger()
 
 class EC2:
@@ -19,14 +17,17 @@ class EC2:
 
     def get_instance_ids(self, ec2_tags):
         try:
-            print(ec2_tags)
-            filters = [
-                {'Name': f'tag:{key}', 'Values': [value]}
-                for tag in ec2_tags
-                for key, value in tag.items()
-            ]
-            
-            reservations = self.ec2_client.describe_instances(Filters=filters).get('Reservations', [])
+            filters = []
+            if (len(ec2_tags)):
+                for key, values in ec2_tags.items():
+                    values_list = values if isinstance(values, list) else [values]
+                    tag_filters = {'Name': f'tag:{key}', 'Values': values_list}
+                    filters.append(tag_filters)
+                
+                reservations = self.ec2_client.describe_instances(Filters=filters).get('Reservations', [])
+            else:
+                reservations = self.ec2_client.describe_instances().get('Reservations', [])
+
             instances = sum([[i for i in r['Instances']] for r in reservations], [])
 
             instance_data = []
@@ -69,34 +70,28 @@ class EC2:
                     for alarm in response['MetricAlarms']:
                         alarmname = alarm['AlarmName']
                         alarmconfig = True
-                        validation = self.validation(alarm, alarm_configuration, alarmconfig, alarmname,resource_name)
+                        validation = self.validation(alarm, alarm_configuration, alarmconfig, alarmname,resource_name,engine=False, replica=False)
+                        # validation = self.validation(alarm, alarm_configuration, alarmconfig, alarmname,resource_name)
 
                         mismatch_reasons = []
-                        if (
-                            alarm['Threshold'] != alarm_configuration['Threshold'] or
-                            alarm['DatapointsToAlarm'] != alarm_configuration['DatapointsToAlarm'] or
-                            alarm['Period'] != alarm_configuration['Period'] or
-                            alarm['EvaluationPeriods'] != alarm_configuration['EvaluationPeriods'] or
-                            alarm['Statistic'] != alarm_configuration['Statistic'] or
-                            alarm['ComparisonOperator'] != alarm_configuration['ComparisonOperator'] or
-                            alarm['TreatMissingData'] != alarm_configuration['TreatMissingData']
-                        ):
-                            validation['Validation'] = 'fail'
-                            if alarm['Threshold'] != alarm_configuration['Threshold']:
-                                mismatch_reasons.append('Threshold')
-                            if alarm['DatapointsToAlarm'] != alarm_configuration['DatapointsToAlarm']:
-                                mismatch_reasons.append('Datapoints')
-                            if alarm['Period'] != alarm_configuration['Period']:
-                                mismatch_reasons.append('Period')
-                            if alarm['EvaluationPeriods'] != alarm_configuration['EvaluationPeriods']:
-                                mismatch_reasons.append('Evaluation periods')
-                            if alarm['Statistic'] != alarm_configuration['Statistic']:
-                                mismatch_reasons.append('Statistic')
-                            if alarm['ComparisonOperator'] != alarm_configuration['ComparisonOperator']:
-                                mismatch_reasons.append('Comparison operator')
-                            if alarm['TreatMissingData'] != alarm_configuration['TreatMissingData']:
-                                mismatch_reasons.append('Treat Missing Data')
 
+                        if alarm['Threshold'] != alarm_configuration['Threshold']:
+                            mismatch_reasons.append('Threshold')
+                        if alarm['DatapointsToAlarm'] != alarm_configuration['DatapointsToAlarm']:
+                            mismatch_reasons.append('Datapoints')
+                        if alarm['Period'] != alarm_configuration['Period']:
+                            mismatch_reasons.append('Period')
+                        if alarm['EvaluationPeriods'] != alarm_configuration['EvaluationPeriods']:
+                            mismatch_reasons.append('Evaluation Periods')
+                        if alarm['Statistic'] != alarm_configuration['Statistic']:
+                            mismatch_reasons.append('Statistic')
+                        if alarm['ComparisonOperator'] != alarm_configuration['ComparisonOperator']:
+                            mismatch_reasons.append('Comparison Operator')
+                        if alarm['TreatMissingData'] != alarm_configuration['TreatMissingData']:
+                            mismatch_reasons.append('Treat Missing Data')
+
+                        if mismatch_reasons:
+                            validation['Validation'] = 'fail'
                             validation['Reason'] = ', '.join(mismatch_reasons) + " not matched"
 
                         threshold_alarms.append(validation)
@@ -109,7 +104,8 @@ class EC2:
                         alarms_json[metric].extend(threshold_alarms)
 
                     if not response['MetricAlarms']:
-                        self.alarm_json_metrics(alarm_configuration, alarms_json, metric,resource_name)
+                        self.alarm_json_metrics(alarm_configuration, alarms_json, metric,resource_name,engine=False, replica=False)
+                        # self.alarm_json_metrics(alarm_configuration, alarms_json, metric, resource_name)
 
             return alarms_json
         except Exception as e:
@@ -140,9 +136,8 @@ class EC2:
         try:
             resource_name = alarm_configuration['ResourceName']
             current_timestamp_ms = int(time.time() * 1000)
-            alarm_name = f"{prefix}/AWS-EC2/{resource}({resource_name})/{metric_name}-Critical/{datetime.now():%Y}/{current_timestamp_ms}"     
+            alarm_name = f"{prefix}|AWS/EC2|{resource}({resource_name})|{metric_name}|{datetime.now():%Y}|{current_timestamp_ms}"     
 
-            
             if metric_name in ['Memory', 'Disk']:
                 namespace = 'CWAgent'
             else:

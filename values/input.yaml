@@ -3,19 +3,28 @@ prefix: custom
 
 Tags:
   ec2_tag:
-    - Type: ec2
-      # Project: aws
-      Environment: Prod
-      # Name: test
-
-  rds_tag:
-    - Project: aws
-      # Environment: non-prod
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - Prod
+        - Dev
 
   alb_tag:
-    - Project: aws
-      Environment: NProd
-      # name: test
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - NProd
+        - Dev
+
+  rds_tag:
+    Tag:
+      Project:
+        - aws
+      Environment:
+        - Prod
+        - Dev
 
 sns_action: ['arn:aws:sns:ap-south-1:342646517446:demo']
 

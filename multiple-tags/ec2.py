@@ -19,7 +19,6 @@ class EC2:
 
     def get_instance_ids(self, ec2_tags):
         try:
-            print(ec2_tags)
             filters = [
                 {'Name': f'tag:{key}', 'Values': [value]}
                 for tag in ec2_tags
